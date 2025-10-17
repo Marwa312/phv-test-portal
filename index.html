@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHV Upload Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>PHV Upload Portal</h1>
+            <p>Upload your documents for processing</p>
+        </header>
+
+        <form id="uploadForm" class="upload-form">
+            <!-- Applicant Name Input -->
+            <div class="form-group">
+                <label for="applicantName">Applicant Name *</label>
+                <input 
+                    type="text" 
+                    id="applicantName" 
+                    name="applicantName" 
+                    required 
+                    placeholder="Enter your full name"
+                >
+            </div>
+
+            <!-- File Upload Section -->
+            <div class="form-group">
+                <label for="fileInput">Select Files *</label>
+                <div class="file-input-container">
+                    <input 
+                        type="file" 
+                        id="fileInput" 
+                        name="files" 
+                        multiple 
+                        accept=".jpg,.jpeg,.png,.pdf"
+                    >
+                    <button type="button" id="addFileBtn" class="btn btn-secondary">
+                        Add File
+                    </button>
+                </div>
+                <small class="file-info">
+                    Accepted formats: JPG, PNG, PDF (max 32MB each)
+                </small>
+            </div>
+
+            <!-- File List Display -->
+            <div class="form-group">
+                <label>Selected Files</label>
+                <div id="fileList" class="file-list">
+                    <p class="no-files">No files selected</p>
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="form-actions">
+                <button type="submit" id="submitBtn" class="btn btn-primary" disabled>
+                    Submit Files
+                </button>
+            </div>
+        </form>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="status-message"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
