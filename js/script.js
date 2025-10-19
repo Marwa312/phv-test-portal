@@ -1,7 +1,12 @@
 /**
  * PHV Upload Portal - Client-side JavaScript
- * Handles file validation, management, and form submission
+ * Handles file validation, management, form submission, and email notifications
  */
+
+// EmailJS Configuration - Replace with your actual EmailJS credentials
+const SERVICE_ID = "service_cl8wqsf";
+const TEMPLATE_ID = "template_xsv6zey";
+const PUBLIC_KEY = "5bWPJQF6Mg1jmRoM5";
 
 // Global variables to store selected files
 let selectedFiles = [];
@@ -14,6 +19,9 @@ const addFileBtn = document.getElementById('addFileBtn');
 const fileList = document.getElementById('fileList');
 const submitBtn = document.getElementById('submitBtn');
 const statusMessage = document.getElementById('statusMessage');
+const applicantNameInput = document.getElementById('applicantName');
+const applicantEmailInput = document.getElementById('applicantEmail');
+const applicantMessageInput = document.getElementById('applicantMessage');
 
 /**
  * Initialize the application when DOM is loaded
@@ -201,10 +209,11 @@ function formatFileSize(bytes) {
  * Update the submit button state based on form validity
  */
 function updateSubmitButton() {
-    const applicantName = document.getElementById('applicantName').value.trim();
+    const applicantName = applicantNameInput.value.trim();
+    const applicantEmail = applicantEmailInput.value.trim();
     const hasFiles = selectedFiles.length > 0;
     
-    submitBtn.disabled = !(applicantName && hasFiles);
+    submitBtn.disabled = !(applicantName && applicantEmail && hasFiles);
 }
 
 /**
@@ -214,11 +223,18 @@ function updateSubmitButton() {
 async function handleFormSubmit(event) {
     event.preventDefault();
     
-    const applicantName = document.getElementById('applicantName').value.trim();
+    const applicantName = applicantNameInput.value.trim();
+    const applicantEmail = applicantEmailInput.value.trim();
+    const applicantMessage = applicantMessageInput.value.trim();
     
     // Final validation
     if (!applicantName) {
         showStatus('Please enter your name.', 'error');
+        return;
+    }
+    
+    if (!applicantEmail) {
+        showStatus('Please enter your email address.', 'error');
         return;
     }
     
@@ -251,17 +267,24 @@ async function handleFormSubmit(event) {
             identifier: f.identifier
         })));
         
-        // Simulate upload (replace with actual endpoint)
-        await simulateUpload(formData);
+        // Upload files to Supabase Storage
+        const uploadResults = await uploadMultipleFiles(
+            selectedFiles.map(f => f.file), 
+            'user-uploads'  // Folder name in the uploads bucket
+        );
         
-        showStatus('Files uploaded successfully! (This is a demo - no actual upload occurred)', 'success');
+        console.log('Upload results:', uploadResults);
+        showStatus('Files uploaded successfully to Supabase!', 'success');
+        
+        // Send email notification after successful upload
+        await sendEmailNotification(applicantName, applicantEmail, applicantMessage, uploadResults);
         
         // Reset form
         resetForm();
         
     } catch (error) {
         console.error('Upload error:', error);
-        showStatus('Upload failed. Please try again.', 'error');
+        showStatus('Upload failed: ' + error.message, 'error');
     } finally {
         // Re-enable submit button
         submitBtn.disabled = false;
@@ -306,7 +329,9 @@ async function simulateUpload(formData) {
  */
 function resetForm() {
     // Clear form fields
-    document.getElementById('applicantName').value = '';
+    applicantNameInput.value = '';
+    applicantEmailInput.value = '';
+    applicantMessageInput.value = '';
     fileInput.value = '';
     
     // Clear selected files
@@ -348,5 +373,98 @@ function hideStatus() {
     statusMessage.style.display = 'none';
 }
 
-// Add event listener for applicant name input to update submit button
-document.getElementById('applicantName').addEventListener('input', updateSubmitButton);
+/**
+ * Send email notification using EmailJS after successful upload
+ * @param {string} applicantName - The name of the applicant
+ * @param {string} applicantEmail - The email of the applicant
+ * @param {string} applicantMessage - The message from the applicant
+ * @param {Array} uploadResults - Array of upload results from Supabase
+ */
+async function sendEmailNotification(applicantName, applicantEmail, applicantMessage, uploadResults) {
+    try {
+        // Check if EmailJS is loaded
+        if (typeof emailjs === 'undefined') {
+            console.warn('EmailJS not loaded. Skipping email notification.');
+            return;
+        }
+
+        // Check if EmailJS credentials are configured
+        if (SERVICE_ID === "YOUR_EMAILJS_SERVICE_ID" || 
+            TEMPLATE_ID === "YOUR_EMAILJS_TEMPLATE_ID" || 
+            PUBLIC_KEY === "YOUR_EMAILJS_PUBLIC_KEY") {
+            console.warn('EmailJS credentials not configured. Skipping email notification.');
+            return;
+        }
+
+        // Initialize EmailJS with your public key
+        emailjs.init(PUBLIC_KEY);
+
+        // Prepare email template parameters
+        const templateParams = {
+            to_name: 'PHV Team', // Recipient name
+            from_name: applicantName, // Sender name
+            from_email: applicantEmail, // Sender email
+            message: applicantMessage || `New file upload from ${applicantName}`,
+            uploaded_files_html: uploadResults.map(result => 
+                `<a href="${result.publicUrl}" style="color: #667eea; text-decoration: underline;">${result.fileName}</a> (${formatFileSize(result.fileSize)}, ${result.fileType})`
+            ).join('<br>'),
+            uploaded_files_text: uploadResults.map(result => 
+                `${result.fileName}: ${result.publicUrl}`
+            ).join('\n'),
+            file_count: uploadResults.length,
+            upload_date: new Date().toLocaleString()
+        };
+
+        console.log('Sending email notification...', templateParams);
+
+        // Send email using EmailJS
+        const response = await emailjs.send(SERVICE_ID, TEMPLATE_ID, templateParams);
+        
+        console.log('Email sent successfully:', response);
+        showStatus('Email notification sent successfully!', 'success');
+
+    } catch (error) {
+        console.error('Email sending failed:', error);
+        // Don't show error to user as upload was successful
+        // Just log it for debugging
+        console.warn('Email notification failed, but upload was successful');
+    }
+}
+
+/**
+ * Format file size for display in email
+ * @param {number} bytes - File size in bytes
+ * @returns {string} - Formatted file size
+ */
+function formatFileSizeForEmail(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+// Add event listeners for form inputs to update submit button
+applicantNameInput.addEventListener('input', updateSubmitButton);
+applicantEmailInput.addEventListener('input', updateSubmitButton);
+
+// Dark mode toggle functionality
+document.getElementById('darkModeToggle').addEventListener('click', function() {
+    document.body.classList.toggle('dark-mode');
+    const toggle = document.getElementById('darkModeToggle');
+    toggle.textContent = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+    
+    // Save preference to localStorage
+    localStorage.setItem('darkMode', document.body.classList.contains('dark-mode'));
+});
+
+// Load dark mode preference on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const darkMode = localStorage.getItem('darkMode') === 'true';
+    if (darkMode) {
+        document.body.classList.add('dark-mode');
+        document.getElementById('darkModeToggle').textContent = '☀️';
+    }
+});

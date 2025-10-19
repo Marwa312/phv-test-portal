@@ -4,11 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PHV Upload Portal</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div class="container">
         <header>
+            <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle dark mode">
+                🌙
+            </button>
             <h1>PHV Upload Portal</h1>
             <p>Upload your documents for processing</p>
         </header>
@@ -24,6 +27,29 @@
                     required 
                     placeholder="Enter your full name"
                 >
+            </div>
+
+            <!-- Email Input -->
+            <div class="form-group">
+                <label for="applicantEmail">Email Address *</label>
+                <input 
+                    type="email" 
+                    id="applicantEmail" 
+                    name="applicantEmail" 
+                    required 
+                    placeholder="Enter your email address"
+                >
+            </div>
+
+            <!-- Message Textarea -->
+            <div class="form-group">
+                <label for="applicantMessage">Message (Optional)</label>
+                <textarea 
+                    id="applicantMessage" 
+                    name="applicantMessage" 
+                    rows="4"
+                    placeholder="Enter any additional message or comments..."
+                ></textarea>
             </div>
 
             <!-- File Upload Section -->
@@ -66,6 +92,19 @@
         <div id="statusMessage" class="status-message"></div>
     </div>
 
-    <script src="script.js"></script>
+    <!-- Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- EmailJS CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    
+    <!-- Supabase Configuration -->
+    <script src="js/supabaseConfig.js"></script>
+    
+    <!-- Upload Helper -->
+    <script src="js/uploadHelper.js"></script>
+    
+    <!-- Main Application Script -->
+    <script src="js/script.js"></script>
 </body>
 </html>
